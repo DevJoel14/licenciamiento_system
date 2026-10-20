@@ -1,0 +1,174 @@
+### ===== Variables de entorno =====
+@base = http://localhost:8085
+@adminKey = dev-admin-key-change-me
+@producto = SISTEMA_TALLER
+
+### 1) Crear licencia con 2 seriales (captura ids y serial)
+# @name crearLicencia
+POST {{base}}/api/admin/licencias
+X-Admin-Api-Key: {{adminKey}}
+Content-Type: application/json
+
+{
+  "codigoProducto": "{{producto}}",
+  "clienteRef": "ACME",
+  "cantidadSeriales": 2
+}
+
+> {%
+    client.global.set("serial", response.body.seriales[0].serial);
+    client.global.set("activadorId", response.body.seriales[0].activadorId);
+    client.global.set("licenciaId", response.body.id);
+%}
+
+### 2) Validacion del instalador -> 601
+POST {{base}}/api/instalador/validar
+Content-Type: application/x-www-form-urlencoded
+
+serial={{serial}}&producto={{producto}}
+
+### 2b) Validacion con producto incorrecto -> 602
+POST {{base}}/api/instalador/validar
+Content-Type: application/x-www-form-urlencoded
+
+serial={{serial}}&producto=OTRO_PRODUCTO
+
+### 2c) Validacion con hardware (custom action) -> permitido 601 (SIN_USO)
+POST {{base}}/api/instalador/validar-hardware
+Content-Type: application/json
+
+{
+  "serial": "{{serial}}",
+  "codigoProducto": "{{producto}}",
+  "instalacionId": "PC-CLIENTE",
+  "versionHuella": 1,
+  "componentesHardware": ["cpu:AAA111", "board:BBB222", "mac:001122334455"]
+}
+
+### 2d) Validacion con hardware tras activar en ese equipo -> permitido 601
+POST {{base}}/api/instalador/validar-hardware
+Content-Type: application/json
+
+{
+  "serial": "{{serial}}",
+  "codigoProducto": "{{producto}}",
+  "instalacionId": "PC-CLIENTE",
+  "versionHuella": 1,
+  "componentesHardware": ["cpu:AAA111", "board:BBB222", "mac:001122334455"]
+}
+
+### 2e) Validacion con hardware desde OTRO equipo -> 602 EQUIPO_NO_AUTORIZADO
+POST {{base}}/api/instalador/validar-hardware
+Content-Type: application/json
+
+{
+  "serial": "{{serial}}",
+  "codigoProducto": "{{producto}}",
+  "instalacionId": "PC-OTRA",
+  "versionHuella": 1,
+  "componentesHardware": ["cpu:CCC333", "board:DDD444", "mac:665544332211"]
+}
+
+### 3) Activar en el equipo A -> OCUPADO
+POST {{base}}/api/activacion/activar
+Content-Type: application/json
+
+{
+  "serial": "{{serial}}",
+  "codigoProducto": "{{producto}}",
+  "instalacionId": "inst-A",
+  "versionHuella": 1,
+  "nombreEquipo": "PC-A",
+  "sistemaOperativo": "Windows 11",
+  "componentesHardware": ["cpu:AAA111", "board:BBB222", "mac:001122334455"]
+}
+
+### 4) Verificar desde el mismo equipo -> exitoso true
+POST {{base}}/api/activacion/verificar
+Content-Type: application/json
+
+{
+  "serial": "{{serial}}",
+  "codigoProducto": "{{producto}}",
+  "instalacionId": "inst-A",
+  "versionHuella": 1,
+  "componentesHardware": ["cpu:AAA111", "board:BBB222"]
+}
+
+### 5) Activar desde otro equipo -> EQUIPO_NO_AUTORIZADO (409)
+POST {{base}}/api/activacion/activar
+Content-Type: application/json
+
+{
+  "serial": "{{serial}}",
+  "codigoProducto": "{{producto}}",
+  "instalacionId": "inst-B",
+  "versionHuella": 1,
+  "componentesHardware": ["cpu:CCC333", "board:DDD444"]
+}
+
+### 6) Estado de la licencia
+GET {{base}}/api/licencia/estado?codigoProducto={{producto}}&clienteRef=ACME
+
+### 7) Listar activadores (admin)
+GET {{base}}/api/admin/activadores
+X-Admin-Api-Key: {{adminKey}}
+
+### 8) Autorizar traslado -> TRASPASO (admin)
+POST {{base}}/api/admin/activadores/{{activadorId}}/traspaso
+X-Admin-Api-Key: {{adminKey}}
+Content-Type: application/json
+
+{
+  "autorizadoPor": "soporte@acme"
+}
+
+### 9) Activar desde el equipo nuevo -> completa el traslado
+POST {{base}}/api/activacion/activar
+Content-Type: application/json
+
+{
+  "serial": "{{serial}}",
+  "codigoProducto": "{{producto}}",
+  "instalacionId": "inst-B",
+  "versionHuella": 1,
+  "componentesHardware": ["cpu:CCC333", "board:DDD444"]
+}
+
+### 10) Revocar serial (admin)
+POST {{base}}/api/admin/activadores/{{activadorId}}/revocar
+X-Admin-Api-Key: {{adminKey}}
+
+### 10b) Validacion tras revocar -> 602
+POST {{base}}/api/instalador/validar
+Content-Type: application/x-www-form-urlencoded
+
+serial={{serial}}&producto={{producto}}
+
+### 11) Agregar puestos adicionales (admin)
+POST {{base}}/api/admin/licencias/{{licenciaId}}/seriales
+X-Admin-Api-Key: {{adminKey}}
+Content-Type: application/json
+
+{
+  "cantidad": 3
+}
+
+### 12) Desactivar licencia (admin)
+POST {{base}}/api/admin/licencias/{{licenciaId}}/desactivar
+X-Admin-Api-Key: {{adminKey}}
+
+### 12b) Validacion con licencia desactivada -> 602
+POST {{base}}/api/instalador/validar
+Content-Type: application/x-www-form-urlencoded
+
+serial={{serial}}&producto={{producto}}
+
+### 13) Admin sin API key -> 401
+GET {{base}}/api/admin/activadores
+
+### 14) Clave publica para el token offline
+GET {{base}}/api/public-key
+
+### 15) Panel web (abrir en el navegador)
+GET {{base}}/admin

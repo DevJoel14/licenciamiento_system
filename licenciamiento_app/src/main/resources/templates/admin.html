@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Licenciamiento</title>
+    <style>
+        :root {
+            /* Paleta calida: salvia / crema / arena / tierra */
+            --salvia-claro:#e9edc9;
+            --arena:#fefae0;
+            --crema:#faedcd;
+            --tierra:#d4a373;
+            /* Paleta cafe: tonos tierra */
+            --marron-100:#ede0d4;
+            --marron-300:#e6ccb2;
+            --marron-400:#ddb892;
+            --marron-500:#b08968;
+            --marron-600:#9c6644;
+            --marron-700:#7f5539;
+
+            --bg:var(--marron-100);
+            --panel:var(--arena);
+            --border:var(--marron-400);
+            --text:var(--marron-700);
+            --muted:var(--marron-600);
+            --accent:var(--marron-600);
+            --shadow:0 8px 22px rgba(127,85,57,.12);
+        }
+        * { box-sizing: border-box; }
+        body { font-family: "Segoe UI", Arial, sans-serif; margin: 0; background: linear-gradient(180deg, var(--marron-100) 0, var(--arena) 300px); color: var(--text); min-height: 100vh; }
+        header { padding: 22px 28px; background: linear-gradient(120deg, var(--marron-700), var(--marron-600)); border-bottom: 4px solid var(--tierra); box-shadow: var(--shadow); }
+        header h1 { margin: 0; font-size: 21px; color: var(--arena); }
+        header p { margin: 4px 0 0; color: var(--marron-300); font-size: 13px; }
+        header code { background: rgba(254,250,224,.15); color: var(--arena); padding: 1px 6px; border-radius: 4px; }
+        main { padding: 24px 28px; display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+        section { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; box-shadow: var(--shadow); }
+        h2 { margin-top: 0; font-size: 15px; color: var(--marron-700); text-transform: uppercase; letter-spacing: .05em; }
+        label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; font-weight: 600; }
+        input, select { width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--marron-400); background: #fffdf6; color: var(--text); }
+        input:focus, select:focus { outline: none; border-color: var(--marron-500); box-shadow: 0 0 0 3px rgba(176,137,104,.25); }
+        ::selection { background: var(--marron-300); }
+        .row { display: flex; gap: 10px; }
+        .row > div { flex: 1; }
+        button { margin-top: 12px; padding: 9px 14px; border: none; border-radius: 6px; background: var(--marron-600); color: var(--arena); font-weight: 600; cursor: pointer; transition: background .15s, transform .05s; }
+        button:hover { background: var(--marron-700); }
+        button:active { transform: translateY(1px); }
+        button.secondary { background: var(--marron-300); color: var(--marron-700); border: 1px solid var(--marron-400); }
+        button.secondary:hover { background: var(--marron-400); }
+        button.danger { background: var(--tierra); color: var(--marron-700); }
+        button.danger:hover { background: var(--marron-500); color: var(--arena); }
+        button.warn { background: var(--crema); color: var(--marron-700); border: 1px solid var(--tierra); }
+        button.warn:hover { background: var(--salvia-claro); }
+        button.mini { margin: 0 4px 0 0; padding: 4px 9px; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--marron-300); vertical-align: middle; }
+        th { color: var(--marron-700); font-weight: 700; }
+        tbody tr:hover { background: var(--crema); }
+        code.serial { font-family: Consolas, monospace; font-size: 13px; letter-spacing: .5px; color: var(--marron-700); background: var(--marron-100); padding: 2px 6px; border-radius: 4px; }
+        pre { background: var(--marron-700); color: var(--marron-100); padding: 12px; border-radius: 8px; overflow: auto; max-height: 260px; font-size: 12px; }
+        .badge { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+        .SIN_USO { background: var(--marron-300); color: var(--marron-700); }
+        .ACTIVA { background: var(--marron-600); color: var(--arena); }
+        .DESACTIVA { background: var(--marron-500); color: var(--arena); }
+        .OCUPADO { background: var(--marron-400); color: var(--marron-700); }
+        .TRASPASO { background: var(--crema); color: var(--marron-700); border: 1px solid var(--tierra); }
+        .REVOCADO { background: var(--marron-500); color: var(--arena); }
+        .grid-full { grid-column: 1 / -1; }
+        .hint { font-size: 12px; color: var(--muted); }
+        .warnbox { background: var(--crema); border-left: 4px solid var(--tierra); color: var(--marron-700); padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-top: 10px; }
+        .toast { position: fixed; bottom: 20px; right: 20px; background: var(--marron-600); color: var(--arena); padding: 10px 16px; border-radius: 8px; font-weight: 600; opacity: 0; transition: opacity .2s; box-shadow: var(--shadow); }
+        .toast.show { opacity: 1; }
+        .backend-banner { display: none; margin: 16px 28px 0; padding: 12px 16px; border-radius: 8px; background: var(--crema); border: 1px solid var(--tierra); border-left: 5px solid var(--marron-600); color: var(--marron-700); font-size: 14px; }
+        .backend-banner.show { display: block; }
+        .backend-banner a { color: var(--marron-600); font-weight: 700; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(127,85,57,.45); z-index: 50; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay.show { display: flex; }
+        .modal-box { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 22px; width: 100%; max-width: 430px; box-shadow: var(--shadow); }
+        .modal-box h3 { margin: 0 0 10px; font-size: 16px; color: var(--marron-700); }
+        .modal-box p { margin: 0; font-size: 14px; color: var(--muted); line-height: 1.45; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+        .modal-actions button { margin-top: 0; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Panel de Licenciamiento</h1>
+    <p>Administra licencias, seriales y traslados. Consume la API REST con la cabecera <code>X-Admin-Api-Key</code>.</p>
+</header>
+
+<div id="backendBanner" class="backend-banner">
+    <strong>Este panel no se esta ejecutando desde el backend.</strong>
+    Las llamadas a <code>/api/...</code> iran al servidor equivocado y devolveran 404.
+    Abrelo en <a id="backendBannerLink" href="http://127.0.0.1:8086/admin">http://127.0.0.1:8086/admin</a>.
+</div>
+
+<main>
+    <section>
+        <h2>Conexion</h2>
+        <label>Clave de administrador (X-Admin-Api-Key)</label>
+        <input id="apiKey" type="password" placeholder="ADMIN_API_KEY">
+        <p class="hint">Se guarda solo en esta pestana (sessionStorage).</p>
+    </section>
+
+    <section>
+        <h2>Crear licencia</h2>
+        <label>Codigo de producto</label>
+        <input id="nuevoProducto" placeholder="SISTEMA_TALLER">
+        <label>Cliente</label>
+        <input id="nuevoCliente" placeholder="ACME S.A.">
+        <label>Seriales a generar</label>
+        <input id="nuevoSeriales" type="number" value="1" min="0">
+        <button onclick="crearLicencia()">Crear licencia</button>
+    </section>
+
+    <section>
+        <h2>Agregar seriales a una licencia</h2>
+        <label>Licencia ID</label>
+        <input id="licenciaId" placeholder="1">
+        <label>Cantidad</label>
+        <input id="cantidadSeriales" type="number" value="1" min="1">
+        <button onclick="agregarSeriales()">Generar seriales</button>
+        <div class="row" style="margin-top:12px;">
+            <div>
+                <button onclick="cambiarEstado(false)">Desactivar licencia</button>
+            </div>
+            <div>
+                <button onclick="cambiarEstado(true)">Reactivar licencia</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid-full">
+        <h2>Consultar licencia</h2>
+        <p class="hint">Indica el codigo de producto. El cliente es opcional.</p>
+        <div class="row">
+            <div>
+                <label>Codigo de producto (obligatorio)</label>
+                <input id="buscaProducto" placeholder="CRUSTY FUSION">
+            </div>
+            <div>
+                <label>Cliente (opcional)</label>
+                <input id="buscaCliente" placeholder="POLLERIA LOS ANGELES">
+            </div>
+        </div>
+        <div class="row" style="margin-top:12px;">
+            <div>
+                <button class="secondary" onclick="consultarLicencia()">Consultar</button>
+            </div>
+        </div>
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Producto</th>
+                <th>Cliente</th>
+                <th>Estado</th>
+                <th>Seriales</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody id="tablaLicencias">
+            <tr>
+                <td colspan="6" class="hint">Sin consultas.</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section id="detalleLicencia" class="grid-full" style="display:none;">
+        <h2>Detalle de licencia</h2>
+        <p id="detalleTitulo" class="hint"></p>
+        <table>
+            <thead>
+            <tr>
+                <th>Activador ID</th>
+                <th>Estado</th>
+                <th>Creado</th>
+            </tr>
+            </thead>
+            <tbody id="tablaDetalle"></tbody>
+        </table>
+    </section>
+
+    <section class="grid-full">
+        <h2>Seriales generados</h2>
+        <div class="warnbox">
+            Estos seriales se muestran una sola vez. Copialos o descargalos ahora y enviaselos al cliente.
+            No se guardan en el navegador y desaparecen al recargar la pagina.
+        </div>
+        <div class="row" style="margin-top:12px;">
+            <div>
+                <button class="secondary" onclick="copiarTodos()">Copiar todos</button>
+            </div>
+            <div>
+                <button class="secondary" onclick="descargarSeriales()">Descargar .txt</button>
+            </div>
+        </div>
+        <table>
+            <thead>
+            <tr>
+                <th>Serial</th>
+                <th>Activador ID</th>
+                <th>Estado</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody id="tablaSeriales">
+            <tr>
+                <td colspan="4" class="hint">Aun no has generado seriales en esta sesion.</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="grid-full">
+        <h2>Activadores</h2>
+        <label>Filtrar por licencia (id, opcional)</label>
+        <input id="filtroLicencia" placeholder="1">
+        <button class="secondary" onclick="cargarActivadores()">Cargar</button>
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Licencia</th>
+                <th>Estado</th>
+                <th>Instalacion</th>
+                <th>Equipo</th>
+                <th>Acciones</th>
+            </tr>
+            </thead>
+            <tbody id="tablaActivadores"></tbody>
+        </table>
+    </section>
+
+    <section class="grid-full">
+        <h2>Respuesta</h2>
+        <pre id="salida">Sin operaciones.</pre>
+    </section>
+</main>
+
+<div id="confirmModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="confirmTitulo">
+    <div class="modal-box">
+        <h3 id="confirmTitulo">Confirmar accion</h3>
+        <p id="confirmMensaje"></p>
+        <div class="modal-actions">
+            <button class="secondary" onclick="cerrarConfirmacion(false)">Cancelar</button>
+            <button id="confirmBtn" onclick="cerrarConfirmacion(true)">Confirmar</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast">Copiado</div>
+
+<script>
+    const $ = (id) => document.getElementById(id);
+    // El panel debe servirse desde el propio backend, por eso la base es relativa.
+    const API_BASE = '';
+    const key = () => $('apiKey').value.trim() || sessionStorage.getItem('adminKey') || '';
+    $('apiKey').addEventListener('input', e => sessionStorage.setItem('adminKey', e.target.value));
+    window.addEventListener('load', () => {
+        $('apiKey').value = sessionStorage.getItem('adminKey') || '';
+        verificarBackend();
+    });
+
+    /**
+     * Detecta si la pagina se sirve desde el backend (Spring) o desde otro servidor
+     * (p. ej. el preview de IntelliJ, que responde 404 HTML a /api/...).
+     */
+    async function verificarBackend() {
+        const banner = $('backendBanner');
+        try {
+            const res = await fetch(API_BASE + '/api/public-key', { headers: { 'Accept': 'application/json' } });
+            const tipo = res.headers.get('content-type') || '';
+            if (!res.ok || !tipo.includes('json')) throw new Error('no-json');
+            banner.classList.remove('show');
+        } catch {
+            const destino = 'http://127.0.0.1:8086/admin';
+            $('backendBannerLink').href = destino;
+            $('backendBannerLink').textContent = destino;
+            banner.classList.add('show');
+        }
+    }
+
+    // Seriales generados solo en memoria de esta pestana (no se persisten).
+    let serialesGenerados = [];
+
+    function headers(json) {
+        const h = { 'X-Admin-Api-Key': key() };
+        if (json) h['Content-Type'] = 'application/json';
+        return h;
+    }
+    function show(data) { $('salida').textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2); }
+    function toast(msg) {
+        const t = $('toast'); t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 1500);
+    }
+
+    // Modal de confirmacion reutilizable (devuelve true/false).
+    let confirmResolver = null;
+
+    function confirmar(titulo, mensaje, textoBoton) {
+        return new Promise(resolve => {
+            confirmResolver = resolve;
+            $('confirmTitulo').textContent = titulo;
+            $('confirmMensaje').textContent = mensaje;
+            $('confirmBtn').textContent = textoBoton || 'Confirmar';
+            $('confirmModal').classList.add('show');
+        });
+    }
+
+    function cerrarConfirmacion(valor) {
+        $('confirmModal').classList.remove('show');
+        if (confirmResolver) {
+            const resolver = confirmResolver;
+            confirmResolver = null;
+            resolver(valor);
+        }
+    }
+
+    $('confirmModal').addEventListener('click', e => {
+        if (e.target.id === 'confirmModal') cerrarConfirmacion(false);
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && confirmResolver) cerrarConfirmacion(false);
+    });
+
+    async function api(url, options = {}) {
+        const res = await fetch(API_BASE + url, options);
+        const text = await res.text();
+        let body;
+        try { body = JSON.parse(text); } catch { body = text; }
+        if (!res.ok) {
+            const esHtml = typeof body === 'string' && body.trim().startsWith('<');
+            if (esHtml) {
+                show({
+                    status: res.status,
+                    mensaje: 'La ruta no existe en el servidor que atendio la peticion. ' +
+                        'Abre el panel desde http://127.0.0.1:8086/admin y verifica que el backend este iniciado.'
+                });
+                verificarBackend();
+            } else {
+                show({ status: res.status, body });
+            }
+            throw new Error('HTTP ' + res.status);
+        }
+        show(body);
+        return body;
+    }
+
+    // ---------------------------------------------------------- seriales
+
+    function registrarSeriales(lista) {
+        if (!Array.isArray(lista)) return;
+        serialesGenerados = serialesGenerados.concat(lista);
+        renderSeriales();
+        if (lista.length) toast(lista.length + ' serial(es) generado(s)');
+    }
+
+    function renderSeriales() {
+        const tbody = $('tablaSeriales');
+        if (!serialesGenerados.length) {
+            tbody.innerHTML = '<tr><td colspan="4" class="hint">Aun no has generado seriales en esta sesion.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = '';
+        serialesGenerados.forEach(s => {
+            const tr = document.createElement('tr');
+            const tdSerial = document.createElement('td');
+            const code = document.createElement('code');
+            code.className = 'serial';
+            code.textContent = s.serial;
+            tdSerial.appendChild(code);
+            const tdId = document.createElement('td');
+            tdId.textContent = s.activadorId ?? '';
+            const tdEstado = document.createElement('td');
+            const span = document.createElement('span');
+            span.className = 'badge ' + (s.estado || 'SIN_USO');
+            span.textContent = s.estado || 'SIN_USO';
+            tdEstado.appendChild(span);
+            const tdAcc = document.createElement('td');
+            const btn = document.createElement('button');
+            btn.className = 'mini secondary';
+            btn.textContent = 'Copiar';
+            btn.onclick = () => copiar(s.serial);
+            tdAcc.appendChild(btn);
+            tr.append(tdSerial, tdId, tdEstado, tdAcc);
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function copiar(texto) {
+        try {
+            await navigator.clipboard.writeText(texto);
+            toast('Copiado');
+        } catch {
+            const ta = document.createElement('textarea');
+            ta.value = texto; document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            toast('Copiado');
+        }
+    }
+
+    function copiarTodos() {
+        if (!serialesGenerados.length) { toast('Nada que copiar'); return; }
+        copiar(serialesGenerados.map(s => s.serial).join('\n'));
+    }
+
+    function descargarSeriales() {
+        if (!serialesGenerados.length) { toast('Nada que descargar'); return; }
+        const contenido = serialesGenerados.map(s => s.serial + '  (activador ' + s.activadorId + ')').join('\n');
+        const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'seriales.txt';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+    }
+
+    // ---------------------------------------------------------- acciones
+
+    async function crearLicencia() {
+        const body = await api('/api/admin/licencias', {
+            method: 'POST', headers: headers(true),
+            body: JSON.stringify({
+                codigoProducto: $('nuevoProducto').value.trim(),
+                clienteRef: $('nuevoCliente').value.trim(),
+                cantidadSeriales: parseInt($('nuevoSeriales').value || '0', 10)
+            })
+        });
+        if (body && body.seriales) {
+            $('licenciaId').value = body.id;
+            registrarSeriales(body.seriales);
+        }
+    }
+
+    async function agregarSeriales() {
+        const id = $('licenciaId').value.trim();
+        if (!id) { toast('Indica el Licencia ID'); return; }
+        const cantidad = parseInt($('cantidadSeriales').value || '1', 10);
+        const confirmado = await confirmar(
+            'Agregar seriales',
+            `Se generaran ${cantidad} serial(es) nuevos para la licencia ${id}. Esta accion no se puede deshacer. ¿Continuar?`,
+            'Generar seriales');
+        if (!confirmado) return;
+        const body = await api('/api/admin/licencias/' + encodeURIComponent(id) + '/seriales', {
+            method: 'POST', headers: headers(true),
+            body: JSON.stringify({ cantidad })
+        });
+        registrarSeriales(body);
+    }
+
+    async function cambiarEstado(activar) {
+        const id = $('licenciaId').value.trim();
+        if (!id) { toast('Indica el Licencia ID'); return; }
+        const confirmado = await confirmar(
+            activar ? 'Reactivar licencia' : 'Desactivar licencia',
+            activar
+                ? `La licencia ${id} volvera a estar ACTIVA y permitira nuevas activaciones. ¿Continuar?`
+                : `La licencia ${id} quedara DESACTIVA y no permitira nuevas activaciones ni instalaciones. ¿Continuar?`,
+            activar ? 'Reactivar' : 'Desactivar');
+        if (!confirmado) return;
+        await api('/api/admin/licencias/' + encodeURIComponent(id) + (activar ? '/activar' : '/desactivar'),
+            { method: 'POST', headers: headers(false) });
+        toast(activar ? 'Licencia activada' : 'Licencia desactivada');
+    }
+
+    // ------------------------------------------------- consultar licencia
+
+    function escapeHtml(valor) {
+        return String(valor ?? '').replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[c]));
+    }
+
+    async function consultarLicencia() {
+        const producto = $('buscaProducto').value.trim();
+        const cliente = $('buscaCliente').value.trim();
+        if (!producto) {
+            toast('Indica el codigo de producto');
+            return;
+        }
+        const params = new URLSearchParams();
+        params.set('codigoProducto', producto);
+        if (cliente) params.set('clienteRef', cliente);
+
+        if (key()) {
+            // Busqueda flexible y con detalle (requiere clave de administrador).
+            const lista = await api('/api/admin/licencias?' + params.toString(), { headers: headers(false) });
+            renderLicencias(lista);
+        } else {
+            // Compatibilidad: la consulta publica de estado no requiere clave.
+            const estado = await api('/api/licencia/estado?' + params.toString());
+            renderLicencias([{
+                id: estado.licenciaId,
+                codigoProducto: estado.codigoProducto,
+                clienteRef: estado.clienteRef,
+                estado: estado.estado,
+                totalSeriales: estado.totalSeriales
+            }]);
+        }
+    }
+
+    function renderLicencias(lista) {
+        const tbody = $('tablaLicencias');
+        tbody.innerHTML = '';
+        if (!Array.isArray(lista) || !lista.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="hint">No se encontraron licencias.</td></tr>';
+            $('detalleLicencia').style.display = 'none';
+            return;
+        }
+        lista.forEach(l => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${escapeHtml(l.id)}</td>
+                <td>${escapeHtml(l.codigoProducto)}</td>
+                <td>${escapeHtml(l.clienteRef)}</td>
+                <td><span class="badge ${escapeHtml(l.estado)}">${escapeHtml(l.estado)}</span></td>
+                <td>${escapeHtml(l.totalSeriales)}</td>
+                <td></td>`;
+            const btn = document.createElement('button');
+            btn.className = 'mini secondary';
+            btn.textContent = 'Ver';
+            btn.onclick = () => verLicencia(l.id);
+            tr.lastElementChild.appendChild(btn);
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function verLicencia(id) {
+        if (!key()) {
+            toast('Ingresa la clave de administrador para ver el detalle');
+            return;
+        }
+        const l = await api('/api/admin/licencias/' + encodeURIComponent(id), { headers: headers(false) });
+        mostrarDetalle(l);
+    }
+
+    function mostrarDetalle(l) {
+        $('detalleLicencia').style.display = 'block';
+        $('detalleTitulo').textContent =
+            `Licencia ${l.id} · ${l.codigoProducto} · ${l.clienteRef} · ${l.estado} · creada ${l.fechaCreacion}`;
+        const tbody = $('tablaDetalle');
+        tbody.innerHTML = '';
+        const seriales = l.seriales || [];
+        if (!seriales.length) {
+            tbody.innerHTML = '<tr><td colspan="3" class="hint">La licencia no tiene seriales.</td></tr>';
+            return;
+        }
+        seriales.forEach(s => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${escapeHtml(s.activadorId)}</td>
+                <td><span class="badge ${escapeHtml(s.estado)}">${escapeHtml(s.estado)}</span></td>
+                <td>${escapeHtml(s.fechaCreacion)}</td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function cargarActivadores() {
+        const id = $('filtroLicencia').value.trim();
+        const lista = await api('/api/admin/activadores' + (id ? '?licenciaId=' + encodeURIComponent(id) : ''),
+            { headers: headers(false) });
+        const tbody = $('tablaActivadores');
+        tbody.innerHTML = '';
+        (lista || []).forEach(a => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${a.id}</td>
+                <td>${a.licenciaId ?? ''}</td>
+                <td><span class="badge ${a.estado}">${a.estado}</span></td>
+                <td>${a.instalacionId ?? '-'}</td>
+                <td>${a.nombreEquipo ?? '-'}</td>
+                <td></td>`;
+            const acciones = tr.lastElementChild;
+            const bTraspaso = document.createElement('button');
+            bTraspaso.textContent = 'Traslado'; bTraspaso.className = 'mini warn';
+            bTraspaso.onclick = () => autorizarTraspaso(a.id);
+            const bRevocar = document.createElement('button');
+            bRevocar.textContent = 'Revocar'; bRevocar.className = 'mini danger';
+            bRevocar.onclick = () => revocar(a.id);
+            acciones.append(bTraspaso, bRevocar);
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function autorizarTraspaso(id) {
+        const autorizadoPor = prompt('Quien autoriza el traslado?');
+        if (!autorizadoPor) return;
+        await api(`/api/admin/activadores/${id}/traspaso`, {
+            method: 'POST', headers: headers(true),
+            body: JSON.stringify({ autorizadoPor })
+        });
+        cargarActivadores();
+    }
+
+    async function revocar(id) {
+        const confirmado = await confirmar(
+            'Revocar serial',
+            `El serial del activador ${id} quedara REVOCADO de forma permanente. ¿Continuar?`,
+            'Revocar');
+        if (!confirmado) return;
+        await api(`/api/admin/activadores/${id}/revocar`, { method: 'POST', headers: headers(false) });
+        cargarActivadores();
+    }
+</script>
+</body>
+</html>
