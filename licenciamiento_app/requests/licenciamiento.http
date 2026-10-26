@@ -1,5 +1,5 @@
 ### ===== Variables de entorno =====
-@base = http://localhost:8085
+@base = http://localhost:80856
 @adminKey = dev-admin-key-change-me
 @producto = SISTEMA_TALLER
 
