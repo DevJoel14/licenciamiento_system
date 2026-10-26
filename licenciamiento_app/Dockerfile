@@ -1,16 +1,21 @@
-# Etapa 1: compilar el proyecto Java con Maven
-FROM maven:3.9-eclipse-temurin-17 AS build
-
+# --- ETAPA 1: Compilación con Maven ---
+FROM eclipse-temurin:17-jdk-jammy AS build
 WORKDIR /app
 
-COPY pom.xml .
-COPY src ./src
+# Como el Dockerfile está dentro de licenciamiento_app,
+# copiamos todo el contenido del directorio actual (.) hacia /app
+COPY . .
 
-RUN mvn clean package -DskipTests
+# Dar permisos al wrapper de Maven y compilar
+RUN chmod +x mvnw
+RUN ./mvnw clean package -DskipTests
 
-# Etapa 2: ejecutar la aplicación
+# --- ETAPA 2: Ejecución ligera ---
 FROM eclipse-temurin:17-jdk-jammy
-ARG JAR_FILE=./licenciamiento_app/target/licenciamiento_app-0.0.1-SNAPSHOT.jar
-COPY ${JAR_FILE} licenciamiento_app.jar
+WORKDIR /app
+
+# Copiar el JAR generado en la etapa anterior
+COPY --from=build /app/target/licenciamiento_app-0.0.1-SNAPSHOT.jar licenciamiento_app.jar
+
 EXPOSE 8086
-ENTRYPOINT ["java","-jar","licenciamiento_app.jar"]
+ENTRYPOINT ["java", "-jar", "licenciamiento_app.jar"]
