@@ -5,6 +5,28 @@ docker-compose down
 docker-compose build
 docker-compose up -d
 
+
+# --- ETAPA 1: Compilación con Maven ---
+FROM eclipse-temurin:17-jdk-jammy AS build
+WORKDIR /app
+
+# Copiar el contenido de la subcarpeta del proyecto al WORKDIR del contenedor
+COPY licenciamiento_app/ .
+
+# Dar permisos al wrapper de Maven y compilar empaquetando el JAR
+RUN chmod +x mvnw
+RUN ./mvnw clean package -DskipTests
+
+# --- ETAPA 2: Ejecución ligera ---
+FROM eclipse-temurin:17-jdk-jammy
+WORKDIR /app
+
+# Copiar el JAR generado apuntando a la subcarpeta de compilación
+COPY --from=build /app/target/licenciamiento_app-0.0.1-SNAPSHOT.jar licenciamiento_app.jar
+
+EXPOSE 8086
+ENTRYPOINT ["java", "-jar", "licenciamiento_app.jar"]
+
 # Sistema de Licenciamiento (Spring Boot)
 
 Backend centralizado y **agnóstico** para comercializar software de escritorio mediante
@@ -290,3 +312,47 @@ serial en otros equipos, pero **no** garantiza una identidad imposible de falsif
 validación del instalador no sustituye la activación ni la protección del software.
 Mientras un serial esté en `TRASPASO`, cualquier equipo que conozca el serial podría
 reclamarlo (se acepta como riesgo operativo del modelo sin tokens).
+
+// coneccion por aiven databasee
+jdbc:mysql://mysql-3c8bbtef-licenciamientoapp.l.aivencloud.com:24152/defaultdb?useSSL=true&requireSSL=true&serverTimezone=UTC&allowPublicKeyRetrieval=true
+
+
+
+
+jdbc:mysql://mysql-3c8bbtef-licenciamientoapp.l.aivencloud.com:24152/defaultdb?useSSL=true&sslMode=REQUIRED&serverTimezone=UTC&allowPublicKeyRetrieval=true
+
+
+
+version: '4'
+
+services:
+licenciamiento_backend:
+build: licenciamiento_app
+mem_limit: 512m
+ports:
+- "8080:8086"
+environment:
+DB_URL: jdbc:mysql://licenciamiento_app:3306/licenciamiento?createDatabaseIfNotExist=true&serverTimezone=UTC
+DB_USER_NAME: root
+DB_PASSWORD: itsa2023
+LICENSE_HMAC_SECRET: ${LICENSE_HMAC_SECRET}
+ADMIN_API_KEY: ${ADMIN_API_KEY}	 
+volumes:
+- ./licenciamiento_app/keys:/keys
+restart: always
+depends_on:
+licenciamiento_app:
+condition: service_healthy
+licenciamiento_app:
+image: mysql:8.0.33
+ports:
+- "3307:3306"
+environment:
+MYSQL_ROOT_PASSWORD: itsa2023
+MYSQL_PASSWORD: itsa2023
+MYSQL_DATABASE: licenciamiento
+restart: always
+healthcheck:
+test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+timeout: 10s
+retries: 10

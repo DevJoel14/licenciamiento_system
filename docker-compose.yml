@@ -1,33 +1,37 @@
-version: '4'
+version: '3.8'
 
 services:
-  licenciamiento_backend:
+  app-backend:
     build: licenciamiento_app
+    container_name: licenciamiento_backend_container
     mem_limit: 512m
     ports:
       - "8080:8086"
     environment:
-      DB_URL: jdbc:mysql://licenciamiento_app:3306/licenciamiento?createDatabaseIfNotExist=true&serverTimezone=UTC
-      DB_USER_NAME: root
-      DB_PASSWORD: itsa2023
-      LICENSE_HMAC_SECRET: ${LICENSE_HMAC_SECRET}
-      ADMIN_API_KEY: ${ADMIN_API_KEY}	 
+      - DB_URL=jdbc:mysql://mysql-db:3306/licenciamiento?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - DB_USER_NAME=root
+      - DB_PASSWORD=itsa2023
+      - LICENSE_HMAC_SECRET=${LICENSE_HMAC_SECRET:-secretodefault}
+      - ADMIN_API_KEY=${ADMIN_API_KEY:-123456}
+      - SERVER_PORT=8086
     volumes:
-      - ./licenciamiento_app/keys:/keys
+      - licenciamiento_app/keys:/keys
     restart: always
     depends_on:
-      licenciamiento_app:
-          condition: service_healthy
-  licenciamiento_app:
+      mysql-db:
+        condition: service_healthy
+
+  mysql-db:
     image: mysql:8.0.33
+    container_name: licenciamiento_mysql_container
     ports:
       - "3307:3306"
     environment:
       MYSQL_ROOT_PASSWORD: itsa2023
-      MYSQL_PASSWORD: itsa2023
       MYSQL_DATABASE: licenciamiento
     restart: always
     healthcheck:
-      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
-      timeout: 10s
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
       retries: 10
