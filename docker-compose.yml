@@ -15,7 +15,7 @@ services:
       - ADMIN_API_KEY=${ADMIN_API_KEY:-123456}
       - SERVER_PORT=8086
     volumes:
-      - licenciamiento_app/keys:/keys
+      - ./licenciamiento_app/keys:/keys
     restart: always
     depends_on:
       mysql-db:
